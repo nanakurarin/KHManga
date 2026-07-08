@@ -1,29 +1,30 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Layout from './components/layout/Layout.jsx';
+import Home from './pages/Home.jsx';
+import Browse from './pages/Browse.jsx';
+import MangaDetails from './pages/MangaDetails.jsx';
+import Library from './pages/Library.jsx';
+import Profile from './pages/Profile.jsx';
+import Login from './pages/Login.jsx';
+import Register from './pages/Register.jsx';
+import NotFound from './pages/NotFound.jsx';
 
 function App() {
   return (
     <Router>
-      <div className="flex flex-col min-h-screen">
-        <header className="bg-slate-900 border-b border-slate-800 p-4">
-          <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold text-rose-500">KHManga</h1>
-            <nav className="space-x-4">
-              <span className="text-slate-400 hover:text-white cursor-pointer">Home</span>
-              <span className="text-slate-400 hover:text-white cursor-pointer">Browse</span>
-            </nav>
-          </div>
-        </header>
-        
-        <main className="flex-grow container mx-auto p-4 flex flex-col items-center justify-center">
-          <h2 className="text-2xl font-semibold mb-2">Folder Structure Created Successfully!</h2>
-          <p className="text-slate-400">Ready to build the React client application.</p>
-        </main>
-        
-        <footer className="bg-slate-900 border-t border-slate-800 p-4 text-center text-sm text-slate-500">
-          &copy; {new Date().getFullYear()} KHManga. All rights reserved.
-        </footer>
-      </div>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/browse" element={<Browse />} />
+          <Route path="/manga/:id" element={<MangaDetails />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Layout>
     </Router>
   );
 }
