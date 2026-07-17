@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useAuth } from "../../context/AuthContext";
 
 function Navbar() {
+  const { currentUser, loading } = useAuth();
+
+  console.log("Current user:", currentUser);
   const [isOpen, setIsOpen] = useState(false);
 
   const navLinks = [
@@ -42,18 +46,36 @@ function Navbar() {
 
           {/* Desktop Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link
-              to="/login"
-              className="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium transition duration-200"
-            >
-              Log In
-            </Link>
-            <Link
-              to="/register"
-              className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-rose-950/50 hover:shadow-rose-900/60 transition duration-200 transform hover:-translate-y-0.5"
-            >
-              Register
-            </Link>
+            {currentUser ? (
+              <>
+                <span className="text-slate-300">
+                  Hi, {currentUser.displayName || currentUser.email}
+                </span>
+
+                <Link
+                  to="/profile"
+                  className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                >
+                  Profile
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="text-slate-300 hover:text-white"
+                >
+                  Log In
+                </Link>
+
+                <Link
+                  to="/register"
+                  className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -87,8 +109,7 @@ function Navbar() {
               to={link.path}
               onClick={() => setIsOpen(false)}
               className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive ? 'bg-slate-900 text-rose-500' : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-slate-900 text-rose-500' : 'text-slate-300 hover:bg-slate-900 hover:text-white'
                 }`
               }
             >
