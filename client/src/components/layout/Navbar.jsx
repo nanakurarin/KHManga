@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
@@ -8,23 +8,38 @@ function Navbar() {
   const { currentUser } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const dropdownRef = useRef(null);
 
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Browse', path: '/browse' },
     { name: 'Library', path: '/library' },
-    { name: 'Profile', path: '/profile' },
   ];
 
   const activeStyle = "text-rose-500 font-semibold border-b-2 border-rose-500 pb-1";
   const inactiveStyle = "text-slate-300 hover:text-white transition duration-200";
+
+  // Handle clicking outside the dropdown to close it
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
 
   const handleLogout = async () => {
     try {
       setLoggingOut(true);
       await signOut(auth);
       setIsOpen(false); // Close mobile menu if open
+      setDropdownOpen(false); // Close dropdown
       navigate('/');
     } catch (err) {
       console.error('Firebase logout error:', err);
@@ -60,39 +75,77 @@ function Navbar() {
             ))}
           </div>
 
-          {/* Desktop Buttons */}
+          {/* Desktop Buttons / Dropdown */}
           <div className="hidden md:flex items-center space-x-4">
             {currentUser ? (
-              <>
-                <span className="text-slate-300 text-sm font-medium mr-2">
-                  Hi, {currentUser.displayName || currentUser.email}
-                </span>
-
-                <Link
-                  to="/profile"
-                  className="text-slate-300 hover:text-white text-sm font-medium transition duration-200"
-                >
-                  Profile
-                </Link>
-
+              <div className="relative" ref={dropdownRef}>
+                {/* Trigger Button */}
                 <button
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  className="bg-rose-600 hover:bg-rose-700 disabled:bg-rose-700/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-semibold transition duration-200 flex items-center space-x-2 shadow-lg shadow-rose-950/40"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center space-x-2 text-slate-300 hover:text-white bg-slate-900/60 border border-slate-800 hover:border-slate-700 px-3.5 py-2 rounded-xl text-sm font-semibold transition duration-200"
                 >
-                  {loggingOut ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Logging Out...</span>
-                    </>
-                  ) : (
-                    <span>Log Out</span>
-                  )}
+                  {/* User Icon */}
+                  <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="max-w-[150px] truncate">
+                    {currentUser.displayName || currentUser.email}
+                  </span>
+                  {/* Chevron Icon */}
+                  <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
-              </>
+
+                {/* Dropdown Menu */}
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2.5 w-56 rounded-xl bg-slate-900 border border-slate-800/80 shadow-2xl shadow-slate-950/80 py-1.5 z-50">
+                    {/* User Profile Info Header */}
+                    <div className="px-4 py-2 border-b border-slate-800/80">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Logged in as</p>
+                      <p className="text-xs font-semibold text-slate-300 truncate mt-0.5">
+                        {currentUser.displayName || currentUser.email}
+                      </p>
+                    </div>
+
+                    {/* Profile Link */}
+                    <Link
+                      to="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center space-x-2.5 px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition duration-150"
+                    >
+                      <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span>My Profile</span>
+                    </Link>
+
+                    {/* Logout Button */}
+                    <button
+                      onClick={handleLogout}
+                      disabled={loggingOut}
+                      className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition duration-150 border-t border-slate-800/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loggingOut ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Logging Out...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          <span>Log Out</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <Link
@@ -152,20 +205,33 @@ function Navbar() {
           ))}
           {currentUser ? (
             <div className="pt-4 pb-2 border-t border-slate-800 flex flex-col space-y-2 px-3">
-              <span className="text-slate-400 text-xs font-semibold px-3 uppercase tracking-wider">
-                Logged in as: <span className="text-slate-200 normal-case font-medium">{currentUser.displayName || currentUser.email}</span>
-              </span>
+              {/* Mobile Profile Name Display */}
+              <div className="flex items-center space-x-2 px-3 py-1 text-slate-400">
+                <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="text-xs font-semibold uppercase tracking-wider truncate">
+                  {currentUser.displayName || currentUser.email}
+                </span>
+              </div>
+              
+              {/* Mobile Profile Link */}
               <Link
                 to="/profile"
                 onClick={() => setIsOpen(false)}
-                className="w-full text-center text-slate-300 hover:text-white py-2 font-medium text-sm transition duration-200"
+                className="w-full flex items-center space-x-2.5 px-3 py-2 text-slate-300 hover:bg-slate-900 rounded-md text-sm font-medium transition duration-200"
               >
-                Profile
+                <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>My Profile</span>
               </Link>
+              
+              {/* Mobile Logout Button */}
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="w-full text-center bg-rose-600 hover:bg-rose-700 disabled:bg-rose-700/50 disabled:cursor-not-allowed text-white py-2 rounded-lg font-semibold text-sm transition duration-200 flex items-center justify-center space-x-2"
+                className="w-full flex items-center justify-center space-x-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-700/50 disabled:cursor-not-allowed text-white py-2 px-3 rounded-lg font-semibold text-sm transition duration-200"
               >
                 {loggingOut ? (
                   <>
@@ -176,7 +242,12 @@ function Navbar() {
                     <span>Logging Out...</span>
                   </>
                 ) : (
-                  <span>Log Out</span>
+                  <>
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Log Out</span>
+                  </>
                 )}
               </button>
             </div>

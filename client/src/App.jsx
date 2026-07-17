@@ -9,6 +9,7 @@ import Profile from './pages/Profile.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import NotFound from './pages/NotFound.jsx';
+import ProtectedRoute from './components/auth/ProtectedRoute.jsx';
 
 function App() {
   return (
@@ -18,8 +19,16 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/browse" element={<Browse />} />
           <Route path="/manga/:id" element={<MangaDetails />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/library" element={
+            <ProtectedRoute>
+              <Library />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<NotFound />} />
