@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../firebase/firebase';
 import { useAuth } from "../../context/AuthContext";
 
 function Navbar() {
-  const { currentUser, loading } = useAuth();
-
-  console.log("Current user:", currentUser);
+  const { currentUser } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -17,6 +19,20 @@ function Navbar() {
 
   const activeStyle = "text-rose-500 font-semibold border-b-2 border-rose-500 pb-1";
   const inactiveStyle = "text-slate-300 hover:text-white transition duration-200";
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await signOut(auth);
+      setIsOpen(false); // Close mobile menu if open
+      navigate('/');
+    } catch (err) {
+      console.error('Firebase logout error:', err);
+      alert('Failed to log out. Please try again.');
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/80">
@@ -48,29 +64,47 @@ function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             {currentUser ? (
               <>
-                <span className="text-slate-300">
+                <span className="text-slate-300 text-sm font-medium mr-2">
                   Hi, {currentUser.displayName || currentUser.email}
                 </span>
 
                 <Link
                   to="/profile"
-                  className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                  className="text-slate-300 hover:text-white text-sm font-medium transition duration-200"
                 >
                   Profile
                 </Link>
+
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="bg-rose-600 hover:bg-rose-700 disabled:bg-rose-700/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-semibold transition duration-200 flex items-center space-x-2 shadow-lg shadow-rose-950/40"
+                >
+                  {loggingOut ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Logging Out...</span>
+                    </>
+                  ) : (
+                    <span>Log Out</span>
+                  )}
+                </button>
               </>
             ) : (
               <>
                 <Link
                   to="/login"
-                  className="text-slate-300 hover:text-white"
+                  className="text-slate-300 hover:text-white text-sm font-medium transition duration-200"
                 >
                   Log In
                 </Link>
 
                 <Link
                   to="/register"
-                  className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                  className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition duration-200 shadow-lg shadow-rose-950/40"
                 >
                   Register
                 </Link>
@@ -116,22 +150,54 @@ function Navbar() {
               {link.name}
             </NavLink>
           ))}
-          <div className="pt-4 pb-2 border-t border-slate-800 flex flex-col space-y-2 px-3">
-            <Link
-              to="/login"
-              onClick={() => setIsOpen(false)}
-              className="w-full text-center text-slate-300 hover:text-white py-2 font-medium text-sm transition duration-200"
-            >
-              Log In
-            </Link>
-            <Link
-              to="/register"
-              onClick={() => setIsOpen(false)}
-              className="w-full text-center bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg font-semibold text-sm transition duration-200"
-            >
-              Register
-            </Link>
-          </div>
+          {currentUser ? (
+            <div className="pt-4 pb-2 border-t border-slate-800 flex flex-col space-y-2 px-3">
+              <span className="text-slate-400 text-xs font-semibold px-3 uppercase tracking-wider">
+                Logged in as: <span className="text-slate-200 normal-case font-medium">{currentUser.displayName || currentUser.email}</span>
+              </span>
+              <Link
+                to="/profile"
+                onClick={() => setIsOpen(false)}
+                className="w-full text-center text-slate-300 hover:text-white py-2 font-medium text-sm transition duration-200"
+              >
+                Profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full text-center bg-rose-600 hover:bg-rose-700 disabled:bg-rose-700/50 disabled:cursor-not-allowed text-white py-2 rounded-lg font-semibold text-sm transition duration-200 flex items-center justify-center space-x-2"
+              >
+                {loggingOut ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Logging Out...</span>
+                  </>
+                ) : (
+                  <span>Log Out</span>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="pt-4 pb-2 border-t border-slate-800 flex flex-col space-y-2 px-3">
+              <Link
+                to="/login"
+                onClick={() => setIsOpen(false)}
+                className="w-full text-center text-slate-300 hover:text-white py-2 font-medium text-sm transition duration-200"
+              >
+                Log In
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setIsOpen(false)}
+                className="w-full text-center bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg font-semibold text-sm transition duration-200"
+              >
+                Register
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </nav>
