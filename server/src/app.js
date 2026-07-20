@@ -17,7 +17,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// TODO: Import routes and mount them here
+import userRoutes from './routes/userRoutes.js';
+
+// Mount routes
+app.use('/api/users', userRoutes);
 
 // 404 Handler
 app.use((req, res, next) => {
@@ -26,11 +29,11 @@ app.use((req, res, next) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    error: {
-      message: err.message || 'Internal Server Error',
-    },
+  console.error(err);
+
+  res.status(500).json({
+    success: false,
+    error: 'Internal Server Error'
   });
 });
 

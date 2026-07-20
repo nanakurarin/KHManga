@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase/firebase';
 import { getFriendlyFirebaseError } from '../utils/firebaseErrors';
+import { syncUserWithBackend } from '../services/backend';
 
 /**
  * Login Page Component
@@ -40,7 +41,20 @@ function Login() {
     // Step B: Execution of the login logic
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+
+      // Sync user with backend (non-blocking)
+      try {
+        const user = userCredential.user;
+
+        await syncUserWithBackend({
+          firebaseUid: user.uid,
+          email: user.email,
+          username: user.displayName || user.email.split('@')[0],
+        });
+      } catch (syncErr) {
+        console.warn('Backend user sync failed (non-blocking):', syncErr);
+      }
 
       // Successfully signed in, navigate to home page
       navigate('/');
@@ -61,7 +75,7 @@ function Login() {
         and shadow effects tailored for a modern anime/gaming site. 
       */}
       <div className="relative bg-slate-900/60 backdrop-blur-md border border-slate-800/80 rounded-2xl p-8 space-y-6 shadow-2xl shadow-rose-950/20">
-        
+
         {/* Subtle, glowing decorative ambient lights in the corners */}
         <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -88,7 +102,7 @@ function Login() {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-5 relative">
-          
+
           {/* Email Input */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block" htmlFor="email">
@@ -125,9 +139,8 @@ function Login() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-lg text-sm transition-all duration-300 mt-3 shadow-lg shadow-rose-950/40 relative flex items-center justify-center space-x-2 ${
-              loading ? 'opacity-70 cursor-not-allowed bg-rose-700' : 'hover:scale-[1.01]'
-            }`}
+            className={`w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-lg text-sm transition-all duration-300 mt-3 shadow-lg shadow-rose-950/40 relative flex items-center justify-center space-x-2 ${loading ? 'opacity-70 cursor-not-allowed bg-rose-700' : 'hover:scale-[1.01]'
+              }`}
           >
             {loading ? (
               <>
@@ -157,7 +170,7 @@ function Login() {
             className="w-full bg-slate-950/50 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-400 font-bold py-2.5 rounded-lg text-xs transition duration-200 flex items-center justify-center space-x-2 cursor-not-allowed opacity-50"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.24 10.285V13.4h6.887C18.2 15.614 15.645 18 12.24 18c-3.86 0-7-3.14-7-7s3.14-7 7-7c1.708 0 3.277.604 4.5 1.625l2.437-2.437C17.312 1.696 14.933 1 12.24 1 6.58 1 2 5.58 2 11.24s4.58 10.24 10.24 10.24c5.795 0 10.254-4.074 10.254-10.24 0-.695-.08-1.355-.22-1.955H12.24z"/>
+              <path d="M12.24 10.285V13.4h6.887C18.2 15.614 15.645 18 12.24 18c-3.86 0-7-3.14-7-7s3.14-7 7-7c1.708 0 3.277.604 4.5 1.625l2.437-2.437C17.312 1.696 14.933 1 12.24 1 6.58 1 2 5.58 2 11.24s4.58 10.24 10.24 10.24c5.795 0 10.254-4.074 10.254-10.24 0-.695-.08-1.355-.22-1.955H12.24z" />
             </svg>
             <span>Google Account (Coming Soon)</span>
           </button>

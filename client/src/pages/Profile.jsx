@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { deleteUser, signOut } from 'firebase/auth';
+import { auth } from '../firebase/firebase';
+import { deleteUserFromBackend } from '../services/backend';
 
 function Profile() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
   const userDetails = {
-    username: 'OtakuReader99',
-    email: 'reader@khmanga.com',
+    username: auth.currentUser?.displayName || 'OtakuReader99',
+    email: auth.currentUser?.email || 'reader@khmanga.com',
     joinDate: 'July 2026',
     favoriteGenres: ['Action', 'Fantasy', 'Comedy'],
     stats: {
@@ -13,8 +21,62 @@ function Profile() {
     }
   };
 
+  /**
+   * Deletes user account completely:
+   * 1. Confirmation prompt
+   * 2. Calls backend DELETE endpoint (uses Admin SDK to delete from Firebase Auth & MySQL)
+   * 3. Signs out user and redirects to login page
+   */
+  const handleDeleteAccount = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      setError('No authenticated user found.');
+      return;
+    }
+
+    // Step 1: Confirmation prompt
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This action is permanent and cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
+    setError('');
+
+    const uid = user.uid;
+
+    try {
+      // Step 2: Delete from Firebase Auth & MySQL via backend DELETE endpoint
+      await deleteUserFromBackend(uid);
+
+      // Step 3: Best-effort client SDK delete if still active, then Sign Out
+      try {
+        await deleteUser(user);
+      } catch (clientDeleteErr) {
+        // Ignored if backend Admin SDK already deleted the user from Firebase Auth
+      }
+
+      await signOut(auth);
+
+      // Step 4: Navigate to Login page
+      navigate('/login');
+    } catch (err) {
+      console.error('Account deletion error:', err);
+      setError(err.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+      {/* Error display */}
+      {error && (
+        <div className="bg-rose-950/40 border border-rose-800/60 rounded-xl p-4 text-rose-200 text-xs font-semibold">
+          {error}
+        </div>
+      )}
+
       {/* Profile Header card */}
       <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
         <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-rose-600 to-rose-400 flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-rose-950/40 select-none">
@@ -72,8 +134,12 @@ function Profile() {
             <button className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold bg-slate-950 text-slate-300 hover:text-white border border-slate-900 hover:border-slate-800 transition duration-150">
               Account Settings
             </button>
-            <button className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold bg-rose-950/20 text-rose-400 hover:bg-rose-950/30 border border-rose-950/30 transition duration-150">
-              Log Out
+            <button
+              onClick={handleDeleteAccount}
+              disabled={loading}
+              className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold bg-rose-950/40 text-rose-400 hover:bg-rose-900/40 hover:text-rose-200 border border-rose-900/50 transition duration-150 disabled:opacity-50"
+            >
+              {loading ? 'Deleting Account...' : 'Delete Account'}
             </button>
           </div>
         </div>
@@ -83,3 +149,4 @@ function Profile() {
 }
 
 export default Profile;
+

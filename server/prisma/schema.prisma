@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,42 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model mapping to Firebase UID and MySQL data
 model User {
-  id        Int        @id @default(autoincrement())
-  firebaseId String     @unique // The UID returned from Firebase Auth
-  email     String     @unique
-  username  String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  bookmarks Bookmark[]
-  history   History[]
-}
-
-// Manga bookmark model
-model Bookmark {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mangaId   String   // MangaDex Manga ID (UUID string)
-  title     String   // Cached Manga title for displays
-  coverUrl  String?  // Cached Manga cover image url
-  createdAt DateTime @default(now())
-
-  @@unique([userId, mangaId])
-}
-
-// Reading history tracking
-model History {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mangaId   String   // MangaDex Manga ID
-  chapterId String   // MangaDex Chapter ID
-  title     String
-  chapterNo String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, mangaId])
+  id           Int      @id @default(autoincrement())
+  firebaseUid  String   @unique
+  email        String   @unique
+  username     String   @unique
+  avatar       String?  @db.VarChar(500)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
