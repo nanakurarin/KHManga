@@ -18,9 +18,12 @@ app.get('/health', (req, res) => {
 });
 
 import userRoutes from './routes/userRoutes.js';
+import libraryRoutes from './routes/libraryRoutes.js';
 
 // Mount routes
 app.use('/api/users', userRoutes);
+app.use('/api/library', libraryRoutes);
+
 
 // 404 Handler
 app.use((req, res, next) => {

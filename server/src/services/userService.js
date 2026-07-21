@@ -57,6 +57,17 @@ export const findUserByEmail = (email) => {
 };
 
 /**
+ * Find a user by primary key id.
+ * @param {number} id 
+ * @returns {Promise<Object|null>}
+ */
+export const findUserById = (id) => {
+  return prisma.user.findUnique({
+    where: { id },
+  });
+};
+
+/**
  * Delete user from database by firebaseUid.
  * @param {string} firebaseUid
  * @returns {Promise<Object>}
@@ -65,6 +76,21 @@ export const deleteUserByFirebaseUid = (firebaseUid) => {
   return prisma.user.delete({
     where: { firebaseUid },
   });
+};
+
+/**
+ * Resolve a user by either numeric id or firebaseUid string.
+ * @param {string|number} identifier
+ * @returns {Promise<Object|null>}
+ */
+export const resolveUser = async (identifier) => {
+  if (!identifier) return null;
+  const numId = Number(identifier);
+  if (!isNaN(numId) && Number.isInteger(numId) && numId > 0) {
+    const userById = await findUserById(numId);
+    if (userById) return userById;
+  }
+  return await findUserByFirebaseUid(String(identifier).trim());
 };
 
 

@@ -7,12 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Status {
+  none
+  reading
+  on_hold
+  dropped
+  plan_to_read
+  completed
+  re_reading
+}
+
 model User {
-  id           Int      @id @default(autoincrement())
-  firebaseUid  String   @unique
-  email        String   @unique
-  username     String   @unique
-  avatar       String?  @db.VarChar(500)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          Int       @id @default(autoincrement())
+  firebaseUid String    @unique
+  email       String    @unique
+  username    String    @unique
+  avatar      String?   @db.VarChar(500)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  libraries   Library[]
+}
+
+model Library {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  mangaId      String    @db.VarChar(191)
+  status       Status    @default(plan_to_read)
+  chaptersRead Int      @default(0) @map("chapters_read")
+  score        Int?      @map("score")
+  notes        String?   @db.Text
+  startDate    DateTime? @map("start_date") @db.Date
+  finishDate   DateTime? @map("finish_date") @db.Date
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mangaId])
+  @@index([userId])
+  @@map("library")
 }
