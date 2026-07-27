@@ -1,53 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getLatestManga, getCoverArt } from '../services/mangaDexApi';
+import HeroCarousel from '../components/home/HeroCarousel';
 
 function Home() {
-  // Static placeholder data for aesthetic purposes
-  const trendingManga = [
-    { id: '1', title: 'Chainsaw Man', author: 'Tatsuki Fujimoto', rating: '9.2', cover: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80', status: 'Ongoing' },
-    { id: '2', title: 'Frieren: Beyond Journey\'s End', author: 'Kanehito Yamada', rating: '9.6', cover: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&q=80', status: 'Ongoing' },
-    { id: '3', title: 'Oshi no Ko', author: 'Aka Akasaka', rating: '8.9', cover: 'https://images.unsplash.com/photo-1560942485-b2a11cc13456?w=400&q=80', status: 'Ongoing' },
-    { id: '4', title: 'Demon Slayer', author: 'Koyoharu Gotouge', rating: '9.4', cover: 'https://images.unsplash.com/photo-1541562232579-512a21360020?w=400&q=80', status: 'Completed' },
-  ];
+  const [latestManga, setLatestManga] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchLatest = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await getLatestManga();
+      setLatestManga(data);
+    } catch (err) {
+      setError(err.message || 'Failed to retrieve latest manga from MangaDex.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLatest();
+  }, []);
+
+  // Loading skeleton card matching heights
+  const SkeletonCard = () => (
+    <div className="flex flex-col bg-slate-900/20 rounded-xl border border-slate-900 overflow-hidden animate-pulse">
+      <div className="aspect-[3/4] bg-slate-950/60" />
+      <div className="p-4 space-y-3">
+        <div className="h-4 bg-slate-950/60 rounded w-3/4" />
+        <div className="h-3 bg-slate-950/60 rounded w-1/2" />
+        <div className="h-3.5 bg-slate-950/60 rounded w-16" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-12">
-      {/* Hero Banner Section */}
-      <section className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border border-slate-800 p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
-        <div className="space-y-6 max-w-xl text-left">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
-            Featured Release
-          </span>
-          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Dive into the world of <span className="bg-gradient-to-r from-rose-500 to-rose-400 bg-clip-text text-transparent">KHManga</span>
-          </h2>
-          <p className="text-slate-400 text-lg">
-            Explore thousands of manga titles directly from the MangaDex repository. Completely ad-free, sleek, and lightning-fast.
-          </p>
-          <div className="flex flex-wrap gap-4 pt-2">
-            <Link 
-              to="/browse" 
-              className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-lg shadow-rose-950/40 transition duration-200 transform hover:-translate-y-0.5"
-            >
-              Start Reading
-            </Link>
-            <Link 
-              to="/register" 
-              className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl font-bold border border-slate-700/80 transition duration-200"
-            >
-              Create Account
-            </Link>
-          </div>
-        </div>
-        <div className="w-full md:w-80 h-48 md:h-80 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl relative flex items-center justify-center">
-          {/* Decorative design representation */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent z-10" />
-          <div className="text-center p-6 z-20 space-y-2">
-            <p className="text-xs text-rose-400 font-semibold tracking-widest uppercase">Now Trending</p>
-            <p className="text-xl font-bold text-white">Chainsaw Man Part 2</p>
-            <span className="inline-block bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded">Ch. 150 Released</span>
-          </div>
-        </div>
+      {/* Hero Carousel Section */}
+      <section>
+        <HeroCarousel mangaList={latestManga} />
       </section>
 
       {/* Grid List Section */}
@@ -62,35 +56,67 @@ function Home() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          {trendingManga.map((manga) => (
-            <Link 
-              key={manga.id} 
-              to={`/manga/${manga.id}`} 
-              className="group flex flex-col bg-slate-900/40 rounded-xl overflow-hidden border border-slate-900 hover:border-slate-800 transition duration-200"
+        {error ? (
+          <div className="text-center py-16 bg-rose-950/10 border border-rose-900/50 rounded-2xl p-6">
+            <p className="text-rose-400 text-sm mb-4">Error loading updates: {error}</p>
+            <button 
+              onClick={fetchLatest} 
+              className="text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-lg transition duration-150"
             >
-              <div className="relative aspect-[3/4] bg-slate-950 overflow-hidden">
-                <div className="absolute top-2 right-2 z-10 bg-slate-950/80 backdrop-blur-sm text-xs font-semibold px-2 py-0.5 rounded text-rose-400 border border-slate-800">
-                  {manga.rating} ★
-                </div>
-                <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-600 font-bold group-hover:scale-105 transition duration-300">
-                  {/* Decorative placeholder block */}
-                  <span className="text-sm px-4 text-center select-none">{manga.title} Cover</span>
-                </div>
-              </div>
-              <div className="p-4 space-y-1">
-                <h4 className="font-bold text-slate-200 group-hover:text-rose-400 transition duration-150 line-clamp-1">
-                  {manga.title}
-                </h4>
-                <p className="text-xs text-slate-400">{manga.author}</p>
-                <div className="flex justify-between items-center pt-2 text-[10px] text-slate-500 font-semibold uppercase">
-                  <span>{manga.status}</span>
-                  <span className="text-slate-400">Ch. 12</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              Retry
+            </button>
+          </div>
+        ) : loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : latestManga.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {latestManga.slice(1, 9).map((manga) => {
+              const coverUrl = getCoverArt(manga);
+              return (
+                <Link 
+                  key={manga.id} 
+                  to={`/manga/${manga.id}`} 
+                  className="group flex flex-col bg-slate-900/40 rounded-xl overflow-hidden border border-slate-900 hover:border-slate-800 transition duration-200 flex-grow"
+                >
+                  <div className="relative aspect-[3/4] bg-slate-950 overflow-hidden">
+                    {coverUrl ? (
+                      <img 
+                        src={coverUrl} 
+                        alt={manga.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-600 font-bold">
+                        <span className="text-xs px-4 text-center select-none">No Cover Art</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-4 space-y-1 flex-grow flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-bold text-slate-200 group-hover:text-rose-400 transition duration-150 line-clamp-2" title={manga.title}>
+                        {manga.title}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1 line-clamp-1">By {manga.author}</p>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 text-[10px] text-slate-500 font-semibold uppercase">
+                      <span>{manga.status}</span>
+                      <span className="text-slate-400">Year: {manga.year}</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-10 bg-slate-900/20 rounded-xl">
+            <p className="text-slate-500 text-sm">No trending updates found.</p>
+          </div>
+        )}
       </section>
     </div>
   );
