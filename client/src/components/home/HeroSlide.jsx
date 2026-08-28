@@ -12,6 +12,8 @@ function HeroSlide({ manga, isActive }) {
   const { isInLibrary, addManga } = useLibrary();
   
   const [submitting, setSubmitting] = useState(false);
+  const [coverLoaded, setCoverLoaded] = useState(false);
+  const [coverError, setCoverError] = useState(false);
   const isMangaInLibrary = isInLibrary(manga.id);
 
   const handleAddToLibrary = async (e) => {
@@ -39,9 +41,9 @@ function HeroSlide({ manga, isActive }) {
       }`}
     >
       {/* Blurred background cover image for rich premium aesthetics */}
-      {manga.coverUrl && (
+      {manga.coverUrl && !coverError && (
         <div 
-          className="absolute inset-0 bg-cover bg-center filter blur-xl opacity-20 scale-105"
+          className={`absolute inset-0 bg-cover bg-center filter blur-xl opacity-20 scale-105 transition-opacity duration-500 ${coverLoaded ? 'opacity-20' : 'opacity-0'}`}
           style={{ backgroundImage: `url(${manga.coverUrl})` }}
         />
       )}
@@ -123,12 +125,19 @@ function HeroSlide({ manga, isActive }) {
 
         {/* Right Side Cover Image (Sharp Foreground floating cover) */}
         <div className="w-full md:w-56 h-48 md:h-72 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl relative flex-shrink-0 z-10 flex items-center justify-center">
-          {manga.coverUrl ? (
+          {/* Skeleton placeholder while loading */}
+          {manga.coverUrl && !coverLoaded && !coverError && (
+            <div className="absolute inset-0 bg-slate-900 animate-pulse" />
+          )}
+
+          {manga.coverUrl && !coverError ? (
             <img 
               src={manga.coverUrl} 
               alt={manga.title} 
-              className="w-full h-full object-cover transition duration-500 hover:scale-105"
-              loading="lazy"
+              className={`w-full h-full object-cover transition duration-500 hover:scale-105 ${coverLoaded ? 'opacity-100' : 'opacity-0'}`}
+              loading={isActive ? 'eager' : 'lazy'}
+              onLoad={() => setCoverLoaded(true)}
+              onError={() => { setCoverError(true); setCoverLoaded(true); }}
             />
           ) : (
             <span className="text-xs text-slate-600 font-bold select-none">No Cover Image</span>

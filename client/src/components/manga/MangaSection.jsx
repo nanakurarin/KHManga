@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import MangaCard from './MangaCard';
+import MangaCardSkeleton from './MangaCardSkeleton';
 
 /**
  * Reusable MangaSection component to show a grid of manga.
@@ -13,22 +14,6 @@ function MangaSection({
   viewMorePath = '/browse', 
   cardProps = {} 
 }) {
-  // Skeleton loader card items matching grid layout heights
-  const SkeletonGrid = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="flex flex-col bg-slate-200/40 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-900 overflow-hidden animate-pulse">
-          <div className="aspect-[3/4] bg-slate-200 dark:bg-slate-950/60" />
-          <div className="p-4 space-y-3">
-            <div className="h-4 bg-slate-200 dark:bg-slate-950/60 rounded w-3/4" />
-            <div className="h-3 bg-slate-200 dark:bg-slate-950/60 rounded w-1/2" />
-            <div className="h-3.5 bg-slate-200 dark:bg-slate-950/60 rounded w-16" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
     <section className="space-y-6">
       {/* Section Header */}
@@ -51,11 +36,13 @@ function MangaSection({
           <p className="text-[10px] text-rose-500/80">{error}</p>
         </div>
       ) : loading ? (
-        <SkeletonGrid />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+          <MangaCardSkeleton count={10} {...cardProps} />
+        </div>
       ) : manga.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-          {manga.slice(0, 10).map((item) => (
-            <MangaCard key={item.id} manga={item} {...cardProps} />
+          {manga.slice(0, 10).map((item, idx) => (
+            <MangaCard key={item.id} manga={item} priority={idx < 5} {...cardProps} />
           ))}
         </div>
       ) : (
@@ -68,3 +55,4 @@ function MangaSection({
 }
 
 export default MangaSection;
+

@@ -48,6 +48,85 @@ const loadSettings = () => {
 };
 
 /**
+ * VerticalReaderPage Component
+ * Displays a manga page with a lightweight loading placeholder while downloading in vertical mode.
+ */
+function VerticalReaderPage({
+  url,
+  index,
+  totalPages,
+  settings,
+  fitHeightStyle,
+  availableHeight,
+  onDoubleClick,
+  onLoad
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <div
+      data-page-index={index}
+      style={settings.imageSizing === 'fit-height' ? { height: `${availableHeight}px` } : undefined}
+      className={`w-full flex justify-center items-center bg-slate-100/50 dark:bg-slate-900/10 ${
+        settings.imageCorner === 'rounded' ? 'rounded-xl' : 'rounded-none'
+      } overflow-hidden shadow-sm hover:shadow-md transition duration-200 relative select-none border border-slate-200/20 dark:border-slate-850/10 min-h-[300px] sm:min-h-[450px]`}
+      onDoubleClick={onDoubleClick}
+    >
+      {/* Page tracking number badge */}
+      <div className="absolute top-3 right-3 bg-slate-900/70 text-white text-[9px] font-bold px-2 py-0.5 rounded-full select-none z-10 uppercase tracking-wider backdrop-blur-sm">
+        Page {index + 1} / {totalPages}
+      </div>
+
+      {/* Lightweight skeleton placeholder shown while downloading */}
+      {!loaded && !hasError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100/70 dark:bg-slate-900/40 animate-pulse z-0 pointer-events-none">
+          <div className="w-7 h-7 rounded-full border-2 border-rose-500/20 border-t-rose-500 animate-spin mb-2" />
+          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+            Loading Page {index + 1}...
+          </span>
+        </div>
+      )}
+
+      <div className={`w-full ${settings.imageSizing === 'original' ? 'overflow-auto' : 'overflow-hidden'} flex justify-center items-center h-full z-10`}>
+        {!hasError ? (
+          <img
+            src={url}
+            alt={`Page ${index + 1}`}
+            style={settings.imageSizing === 'fit-height' ? fitHeightStyle : undefined}
+            className={`${imageSizingClasses[settings.imageSizing]} ${
+              settings.imageCorner === 'rounded' ? 'rounded-xl' : 'rounded-none'
+            } select-none`}
+            loading={index === 0 ? 'eager' : 'lazy'}
+            onLoad={(e) => {
+              setLoaded(true);
+              if (onLoad) onLoad(e);
+            }}
+            onError={() => {
+              setHasError(true);
+              setLoaded(true);
+            }}
+          />
+        ) : (
+          <div className="py-16 text-center text-rose-500 text-xs font-semibold select-none flex flex-col items-center gap-2">
+            <span>Failed to load page {index + 1}</span>
+            <button
+              onClick={() => {
+                setHasError(false);
+                setLoaded(false);
+              }}
+              className="px-3 py-1 bg-rose-600 text-white text-[10px] rounded-lg font-bold shadow-sm hover:bg-rose-700 transition"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Reader Component
  * Vertical scrolling reader page displaying manga chapter pages sequentially.
  */
@@ -251,7 +330,7 @@ function Reader() {
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!document.fullscreenElement;
       setIsFullscreen(isCurrentlyFullscreen);
-      
+
       if (!isCurrentlyFullscreen) {
         // Exited fullscreen: scroll past the header so it remains hidden in standard view
         setIsInitialScrollDone(false);
@@ -524,9 +603,8 @@ function Reader() {
 
       {/* 1. READER HEADER */}
       {settings.showHeader && !isFullscreen && (
-        <header className={`w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-900 shadow-sm px-4 py-3 sm:px-6 z-30 transition-opacity duration-150 ${
-          isInitialScrollDone ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}>
+        <header className={`w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-900 shadow-sm px-4 py-3 sm:px-6 z-30 transition-opacity duration-150 ${isInitialScrollDone ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}>
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
             {/* Back Action & Navigation */}
@@ -619,29 +697,17 @@ function Reader() {
       {settings.readingMode === 'vertical' ? (
         <main className={`w-full ${marginClasses[settings.pageMargin]} flex flex-col items-center ${spacingClasses[settings.imageSpacing]} py-4`}>
           {pages.map((url, index) => (
-            <div
+            <VerticalReaderPage
               key={index}
-              data-page-index={index}
-              style={settings.imageSizing === 'fit-height' ? { height: `${availableHeight}px` } : undefined}
-              className={`w-full flex justify-center items-center bg-slate-100/50 dark:bg-slate-900/10 ${settings.imageCorner === 'rounded' ? 'rounded-xl' : 'rounded-none'} overflow-hidden shadow-sm hover:shadow-md transition duration-200 relative select-none border border-slate-200/20 dark:border-slate-850/10`}
+              url={url}
+              index={index}
+              totalPages={pages.length}
+              settings={settings}
+              fitHeightStyle={fitHeightStyle}
+              availableHeight={availableHeight}
               onDoubleClick={handleToggleFullscreen}
-            >
-              {/* Page tracking number badge */}
-              <div className="absolute top-3 right-3 bg-slate-900/70 text-white text-[9px] font-bold px-2 py-0.5 rounded-full select-none z-10 uppercase tracking-wider backdrop-blur-sm">
-                Page {index + 1} / {pages.length}
-              </div>
-
-              <div className={`w-full ${settings.imageSizing === 'original' ? 'overflow-auto' : 'overflow-hidden'} flex justify-center items-center h-full`}>
-                <img
-                  src={url}
-                  alt={`Page ${index + 1}`}
-                  style={settings.imageSizing === 'fit-height' ? fitHeightStyle : undefined}
-                  className={`${imageSizingClasses[settings.imageSizing]} ${settings.imageCorner === 'rounded' ? 'rounded-xl' : 'rounded-none'} select-none`}
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                  onLoad={calculateAvailableHeight}
-                />
-              </div>
-            </div>
+              onLoad={calculateAvailableHeight}
+            />
           ))}
         </main>
       ) : (
@@ -944,9 +1010,8 @@ function Reader() {
           className="fixed bottom-0 left-0 right-0 z-30 bg-transparent py-0 px-0 h-4 select-none flex items-center"
         >
           {/* Segments container */}
-          <div className={`flex items-center gap-[2px] flex-grow transition-all duration-300 ${
-            isBarHovered ? 'mx-4 h-5' : 'mx-0 h-4'
-          } relative`}>
+          <div className={`flex items-center gap-[2px] flex-grow transition-all duration-300 ${isBarHovered ? 'mx-4 h-5' : 'mx-0 h-4'
+            } relative`}>
             {pages.map((_, idx) => {
               const isRead = idx <= currentPageIndex;
               const isHovered = hoveredPageIdx === idx;
@@ -957,12 +1022,11 @@ function Reader() {
                   onMouseEnter={() => setHoveredPageIdx(idx)}
                   onMouseLeave={() => setHoveredPageIdx(null)}
                   onClick={() => handlePageSegmentClick(idx)}
-                  className={`flex-grow cursor-pointer transition-all duration-300 relative ${
-                    isBarHovered ? 'h-2 rounded-sm' : 'h-[6px] rounded-none'
-                  } ${isRead
-                    ? 'bg-rose-600/60 dark:bg-rose-500/50 hover:bg-rose-500/80 dark:hover:bg-rose-400/70'
-                    : 'bg-slate-400/35 dark:bg-slate-800/45 hover:bg-slate-500/55 dark:hover:bg-slate-700/65'
-                  } ${isBarHovered && idx === currentPageIndex ? 'ring-1 ring-rose-500/40 dark:ring-rose-550/30' : ''}`}
+                  className={`flex-grow cursor-pointer transition-all duration-300 relative ${isBarHovered ? 'h-2 rounded-sm' : 'h-[6px] rounded-none'
+                    } ${isRead
+                      ? 'bg-rose-600/60 dark:bg-rose-500/50 hover:bg-rose-500/80 dark:hover:bg-rose-400/70'
+                      : 'bg-slate-400/35 dark:bg-slate-800/45 hover:bg-slate-500/55 dark:hover:bg-slate-700/65'
+                    } ${isBarHovered && idx === currentPageIndex ? 'ring-1 ring-rose-500/40 dark:ring-rose-550/30' : ''}`}
                 >
                   {/* Tooltip circle on hover */}
                   {isBarHovered && isHovered && (

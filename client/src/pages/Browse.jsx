@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { searchManga } from '../services/mangaDexApi';
 import Pagination from '../components/common/Pagination';
 import MangaCard from '../components/manga/MangaCard';
+import MangaCardSkeleton from '../components/manga/MangaCardSkeleton';
 
 function Browse() {
   const genres = ['Action', 'Comedy', 'Drama', 'Fantasy', 'Romance', 'Sci-Fi', 'Slice of Life', 'Supernatural', 'Thriller'];
@@ -105,21 +106,6 @@ function Browse() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Loading skeleton card matching card heights
-  const SkeletonCard = () => (
-    <div className="flex flex-col bg-slate-200/40 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-900 overflow-hidden animate-pulse">
-      <div className="aspect-[3/4] bg-slate-200 dark:bg-slate-950/60" />
-      <div className="p-4 space-y-3">
-        <div className="h-4 bg-slate-200 dark:bg-slate-950/60 rounded w-3/4" />
-        <div className="h-3 bg-slate-200 dark:bg-slate-950/60 rounded w-1/2" />
-        <div className="flex gap-1">
-          <div className="h-3.5 bg-slate-200 dark:bg-slate-950/60 rounded w-12" />
-          <div className="h-3.5 bg-slate-200 dark:bg-slate-950/60 rounded w-12" />
-        </div>
-      </div>
-    </div>
-  );
-
   const totalPages = Math.ceil(totalResults / ITEMS_PER_PAGE) || 1;
 
   return (
@@ -208,13 +194,13 @@ function Browse() {
           </div>
         ) : loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-            {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
+            <MangaCardSkeleton count={10} showTags={true} />
           </div>
         ) : mangaResults.length > 0 ? (
           <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-              {mangaResults.map((manga) => (
-                <MangaCard key={manga.id} manga={manga} showTags={true} />
+              {mangaResults.map((manga, idx) => (
+                <MangaCard key={manga.id} manga={manga} showTags={true} priority={idx < 5} />
               ))}
             </div>
 

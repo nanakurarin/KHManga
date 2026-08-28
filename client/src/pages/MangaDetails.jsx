@@ -6,6 +6,7 @@ import { getMangaDetails, getMangaChapters, getCoverArt } from '../services/mang
 import { isChapterRead, getMangaReadingHistory, saveChapterRead, removeChapterRead } from '../utils/readingHistory';
 import { Eye, EyeOff } from 'lucide-react';
 import CoverViewer from '../components/CoverViewer';
+import ChapterSkeleton from '../components/manga/ChapterSkeleton';
 
 function MangaDetails() {
   const { id } = useParams();
@@ -24,10 +25,14 @@ function MangaDetails() {
     setMangaHistory(getMangaReadingHistory(id));
     setImageFit('cover'); // Reset cover image fit state on manga transitions
     setImageAspect('3/4'); // Reset aspect ratio state on manga transitions
+    setCoverLoaded(false);
+    setCoverError(false);
   }, [id]);
 
   const [imageFit, setImageFit] = useState('cover');
   const [imageAspect, setImageAspect] = useState('3/4');
+  const [coverLoaded, setCoverLoaded] = useState(false);
+  const [coverError, setCoverError] = useState(false);
 
   const handleImageLoad = (e) => {
     const { naturalWidth, naturalHeight } = e.target;
@@ -62,6 +67,7 @@ function MangaDetails() {
   const [manga, setManga] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chaptersLoading, setChaptersLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,23 +76,43 @@ function MangaDetails() {
 
   // Fetch manga details and chapters list on mount/id change
   useEffect(() => {
+    let isMounted = true;
     const fetchMangaData = async () => {
       setLoading(true);
+      setChaptersLoading(true);
       setError('');
       try {
         const details = await getMangaDetails(id);
+        if (!isMounted) return;
         setManga(details);
-
-        const chList = await getMangaChapters(id);
-        setChapters(chList);
-      } catch (err) {
-        setError(err.message || 'Failed to retrieve manga data.');
-      } finally {
         setLoading(false);
+
+        try {
+          const chList = await getMangaChapters(id);
+          if (isMounted) {
+            setChapters(chList);
+          }
+        } catch (chErr) {
+          console.error('Failed to load chapters list:', chErr);
+        } finally {
+          if (isMounted) {
+            setChaptersLoading(false);
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message || 'Failed to retrieve manga data.');
+          setLoading(false);
+          setChaptersLoading(false);
+        }
       }
     };
 
     fetchMangaData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   // Sync component state with database library entry when it loads
@@ -214,18 +240,29 @@ function MangaDetails() {
         {/* Cover Art Box */}
         <div className="w-full md:w-64 flex-shrink-0">
           <div 
-            className="relative w-full"
+            className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm"
             style={{ aspectRatio: imageAspect }}
           >
-            {coverUrl ? (
+            {coverUrl && !coverLoaded && !coverError && (
+              <div className="absolute inset-0 bg-slate-200 dark:bg-slate-900 animate-pulse z-10" />
+            )}
+
+            {coverUrl && !coverError ? (
               <CoverViewer imageUrl={coverUrl} title={manga.title}>
                 <img
                   src={coverUrl}
                   alt={manga.title}
-                  className={`w-full h-full cursor-pointer ${
+                  className={`w-full h-full cursor-pointer transition-opacity duration-300 ${
                     imageFit === 'contain' ? 'object-contain' : 'object-cover'
-                  }`}
-                  onLoad={handleImageLoad}
+                  } ${coverLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={(e) => {
+                    handleImageLoad(e);
+                    setCoverLoaded(true);
+                  }}
+                  onError={() => {
+                    setCoverError(true);
+                    setCoverLoaded(true);
+                  }}
                 />
               </CoverViewer>
             ) : (
@@ -484,13 +521,15 @@ function MangaDetails() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">Chapters List</h3>
-          {chapters.length > 0 && (
+          {!chaptersLoading && chapters.length > 0 && (
             <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 select-none">
               {chapters.length} Chapters
             </span>
           )}
         </div>
-        {chapters.length > 0 ? (
+        {chaptersLoading ? (
+          <ChapterSkeleton count={6} />
+        ) : chapters.length > 0 ? (
           <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 rounded-xl overflow-hidden shadow-sm">
             <div className="divide-y divide-slate-100 dark:divide-slate-900 max-h-[500px] overflow-y-auto">
               {chapters.map((chapter) => {

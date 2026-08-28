@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useLibrary } from '../context/LibraryContext';
 import { getMangaList } from '../services/mangaDexApi';
 import Pagination from '../components/common/Pagination';
+import LibraryCardSkeleton from '../components/common/LibraryCardSkeleton';
 
 const statusLabels = {
   'plan_to_read': 'Plan to Read',
@@ -21,6 +22,87 @@ const tabToStatusMap = {
   'Dropped': 'dropped',
   'Re-reading': 're_reading'
 };
+
+/**
+ * Sub-component for individual library item with image loading state.
+ */
+function LibraryCardItem({ item, mangaDetails, onRemove }) {
+  const details = mangaDetails[item.mangaId];
+  const title = details?.title || `Manga (ID: ${item.mangaId})`;
+  const coverUrl = details?.coverUrl;
+  const author = details?.author;
+
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-900 rounded-xl p-4 flex gap-4 hover:border-slate-300 dark:hover:border-slate-800 transition duration-150 relative group shadow-sm">
+      {/* Cover art thumbnail */}
+      <div className="w-20 h-28 bg-slate-100 dark:bg-slate-950 rounded flex-shrink-0 flex items-center justify-center border border-slate-200 dark:border-slate-800 overflow-hidden relative select-none">
+        {coverUrl && !imageLoaded && !imageError && (
+          <div className="absolute inset-0 bg-slate-200 dark:bg-slate-900 animate-pulse" />
+        )}
+
+        {coverUrl && !imageError ? (
+          <img
+            src={coverUrl}
+            alt={title}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              setImageError(true);
+              setImageLoaded(true);
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center p-1 text-center select-none bg-slate-100 dark:bg-slate-950">
+            <span className="text-[9px] text-slate-550 dark:text-slate-500 font-bold">No Cover</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col justify-between py-1 flex-grow">
+        <div>
+          <h4 className="font-bold text-slate-850 dark:text-slate-200 line-clamp-1" title={title}>
+            {title}
+          </h4>
+          {author && <p className="text-[11px] text-slate-450 dark:text-slate-550 line-clamp-1">By {author}</p>}
+          <span className="text-[10px] bg-rose-50 dark:bg-slate-800 text-rose-650 dark:text-rose-400 px-2 py-0.5 rounded font-semibold uppercase tracking-wider inline-block border border-rose-100 dark:border-transparent mt-1">
+            {statusLabels[item.status] || item.status}
+          </span>
+        </div>
+
+        <div className="space-y-1 mt-1">
+          <p className="text-xs text-slate-550 dark:text-slate-400">Chapters read: {item.chaptersRead}</p>
+          <p className="text-xs text-slate-550 dark:text-slate-400">
+            Score: {item.score !== null && item.score !== undefined ? `★ ${item.score}/10` : 'No score'}
+          </p>
+          <p className="text-[10px] text-slate-450 dark:text-slate-500">
+            Updated: {new Date(item.updatedAt).toLocaleDateString()}
+          </p>
+          <div className="flex items-center justify-between pt-2">
+            <Link
+              to={`/manga/${item.mangaId}`}
+              className="text-xs text-rose-500 hover:text-rose-600 font-bold inline-block"
+            >
+              Continue &rarr;
+            </Link>
+            <button
+              onClick={() => onRemove(item.mangaId)}
+              className="text-xs text-slate-450 dark:text-slate-550 hover:text-rose-600 transition duration-150"
+              title="Remove from library"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Library() {
   const tabs = ['All', 'Reading', 'Plan to Read', 'Completed', 'On Hold', 'Dropped', 'Re-reading'];
@@ -228,10 +310,7 @@ function Library() {
           </button>
         </div>
       ) : showLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500"></div>
-          <p className="text-slate-400 text-sm font-medium">Loading library entries...</p>
-        </div>
+        <LibraryCardSkeleton count={6} />
       ) : (
         <div className="space-y-6">
           {/* Search & Sort Controls */}
@@ -282,70 +361,14 @@ function Library() {
           {filteredManga.length > 0 ? (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {paginatedManga.map((item) => {
-                  const details = mangaDetails[item.mangaId];
-                  const title = details?.title || `Manga (ID: ${item.mangaId})`;
-                  const coverUrl = details?.coverUrl;
-                  const author = details?.author;
-
-                  return (
-                    <div
-                      key={item.mangaId}
-                      className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-900 rounded-xl p-4 flex gap-4 hover:border-slate-300 dark:hover:border-slate-800 transition duration-150 relative group shadow-sm"
-                    >
-                      {/* Cover art thumbnail */}
-                      <div className="w-20 h-28 bg-slate-100 dark:bg-slate-950 rounded flex-shrink-0 flex items-center justify-center border border-slate-200 dark:border-slate-800 overflow-hidden relative select-none">
-                        {coverUrl ? (
-                          <img
-                            src={coverUrl}
-                            alt={title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span className="text-[10px] text-slate-600 font-bold">Cover</span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col justify-between py-1 flex-grow">
-                        <div>
-                          <h4 className="font-bold text-slate-850 dark:text-slate-200 line-clamp-1" title={title}>
-                            {title}
-                          </h4>
-                          {author && <p className="text-[11px] text-slate-450 dark:text-slate-550 line-clamp-1">By {author}</p>}
-                          <span className="text-[10px] bg-rose-50 dark:bg-slate-800 text-rose-650 dark:text-rose-400 px-2 py-0.5 rounded font-semibold uppercase tracking-wider inline-block border border-rose-100 dark:border-transparent mt-1">
-                            {statusLabels[item.status] || item.status}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1 mt-1">
-                          <p className="text-xs text-slate-550 dark:text-slate-400">Chapters read: {item.chaptersRead}</p>
-                          <p className="text-xs text-slate-550 dark:text-slate-400">
-                            Score: {item.score !== null && item.score !== undefined ? `★ ${item.score}/10` : 'No score'}
-                          </p>
-                          <p className="text-[10px] text-slate-450 dark:text-slate-500">
-                            Updated: {new Date(item.updatedAt).toLocaleDateString()}
-                          </p>
-                          <div className="flex items-center justify-between pt-2">
-                            <Link
-                              to={`/manga/${item.mangaId}`}
-                              className="text-xs text-rose-500 hover:text-rose-600 font-bold inline-block"
-                            >
-                              Continue &rarr;
-                            </Link>
-                            <button
-                              onClick={() => handleRemove(item.mangaId)}
-                              className="text-xs text-slate-450 dark:text-slate-550 hover:text-rose-600 transition duration-150"
-                              title="Remove from library"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {paginatedManga.map((item) => (
+                  <LibraryCardItem
+                    key={item.mangaId}
+                    item={item}
+                    mangaDetails={mangaDetails}
+                    onRemove={handleRemove}
+                  />
+                ))}
               </div>
 
               {/* Pagination Controls */}

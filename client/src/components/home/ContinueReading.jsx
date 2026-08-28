@@ -26,6 +26,8 @@ function ContinueReadingCard({ item, navigate }) {
   const coverUrl = getCoverArt(item.manga);
   const relativeTime = formatRelativeTime(item.timestamp);
   const [chapterCount, setChapterCount] = useState(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,16 +49,33 @@ function ContinueReadingCard({ item, navigate }) {
       className="group flex flex-col bg-white dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-900 hover:border-slate-300 dark:hover:border-slate-800 transition duration-200 overflow-hidden h-full flex-grow shadow-sm"
     >
       {/* Cover Image */}
-      <div className="relative aspect-[3/4] bg-slate-950 flex items-center justify-center overflow-hidden">
-        {coverUrl ? (
+      <div className="relative aspect-[3/4] bg-slate-100 dark:bg-slate-950 flex items-center justify-center overflow-hidden">
+        {/* Skeleton placeholder while loading cover */}
+        {coverUrl && !imageLoaded && !imageError && (
+          <div className="absolute inset-0 bg-slate-200 dark:bg-slate-900 animate-pulse" />
+        )}
+
+        {coverUrl && !imageError ? (
           <img
             src={coverUrl}
             alt={item.manga.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition duration-300 cursor-pointer"
+            className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-300 cursor-pointer ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
             loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              setImageError(true);
+              setImageLoaded(true);
+            }}
           />
         ) : (
-          <span className="text-[10px] text-slate-600 font-bold select-none">No Cover Art</span>
+          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950 p-2 text-center select-none">
+            <svg className="w-6 h-6 text-slate-400 dark:text-slate-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="text-[10px] text-slate-500 dark:text-slate-600 font-bold">No Cover Art</span>
+          </div>
         )}
 
         {/* Top-Right Chapter Badge */}
@@ -68,7 +87,7 @@ function ContinueReadingCard({ item, navigate }) {
         )}
         
         {/* Status Tag */}
-        <div className="absolute bottom-2 left-2 bg-slate-950/80 backdrop-blur-sm px-2 py-0.5 rounded text-[9px] text-slate-300 border border-slate-800 uppercase tracking-wider font-semibold">
+        <div className="absolute bottom-2 left-2 bg-slate-950/80 backdrop-blur-sm px-2 py-0.5 rounded text-[9px] text-slate-300 border border-slate-800 uppercase tracking-wider font-semibold z-10">
           {item.manga.status}
         </div>
       </div>
@@ -187,12 +206,24 @@ function ContinueReading() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex flex-col bg-slate-200/40 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-900 overflow-hidden animate-pulse">
-              <div className="aspect-[3/4] bg-slate-200 dark:bg-slate-950/60" />
-              <div className="p-4 space-y-3">
-                <div className="h-4 bg-slate-200 dark:bg-slate-950/60 rounded w-3/4" />
-                <div className="h-3 bg-slate-200 dark:bg-slate-950/60 rounded w-1/2" />
-                <div className="h-8 bg-slate-200 dark:bg-slate-950/60 rounded w-full" />
+            <div key={i} className="flex flex-col bg-white dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-900 overflow-hidden h-full flex-grow shadow-sm animate-pulse select-none">
+              {/* Cover skeleton */}
+              <div className="relative aspect-[3/4] bg-slate-200 dark:bg-slate-950/80 flex items-center justify-center overflow-hidden">
+                <div className="absolute bottom-2 left-2 h-4 w-14 bg-slate-300 dark:bg-slate-800/90 rounded" />
+                <div className="absolute top-2 right-2 h-4 w-12 bg-slate-300 dark:bg-slate-800/90 rounded" />
+              </div>
+
+              {/* Info skeleton */}
+              <div className="p-4 flex-grow flex flex-col justify-between space-y-3">
+                <div className="space-y-1.5">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-4/5" />
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800/70 rounded w-1/2" />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="h-6 bg-slate-100 dark:bg-slate-950/40 rounded w-full border border-slate-200/50 dark:border-slate-900/40" />
+                  <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-lg w-full" />
+                </div>
               </div>
             </div>
           ))}
