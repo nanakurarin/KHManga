@@ -6,19 +6,23 @@ import Browse from './pages/Browse.jsx';
 import MangaDetails from './pages/MangaDetails.jsx';
 import Library from './pages/Library.jsx';
 import Profile from './pages/Profile.jsx';
+import Reader from './pages/Reader.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import NotFound from './pages/NotFound.jsx';
 import ProtectedRoute from './components/auth/ProtectedRoute.jsx';
+import ScrollToTop from './components/common/ScrollToTop.jsx';
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/browse" element={<Browse />} />
           <Route path="/manga/:id" element={<MangaDetails />} />
+          <Route path="/read/:chapterId" element={<Reader />} />
           <Route path="/library" element={
             <ProtectedRoute>
               <Library />

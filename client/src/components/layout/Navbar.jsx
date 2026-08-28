@@ -3,9 +3,12 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+import SearchBar from '../common/SearchBar';
 
 function Navbar() {
   const { currentUser } = useAuth();
+  const { theme, setDarkMode, setLightMode } = useTheme();
   const [loggingOut, setLoggingOut] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -19,70 +22,71 @@ function Navbar() {
   ];
 
   const activeStyle = "text-rose-500 font-semibold border-b-2 border-rose-500 pb-1";
-  const inactiveStyle = "text-slate-300 hover:text-white transition duration-200";
+  const inactiveStyle = "text-slate-600 dark:text-slate-300 hover:text-rose-500 dark:hover:text-white transition duration-200";
 
   // Handle clicking outside the dropdown to close it
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
+    setLoggingOut(true);
     try {
-      setLoggingOut(true);
       await signOut(auth);
-      setIsOpen(false); // Close mobile menu if open
-      setDropdownOpen(false); // Close dropdown
-      navigate('/');
-    } catch (err) {
-      console.error('Firebase logout error:', err);
-      alert('Failed to log out. Please try again.');
+      setDropdownOpen(false);
+      setIsOpen(false);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
     } finally {
       setLoggingOut(false);
     }
   };
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/80">
+    <nav className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-900 sticky top-0 z-50 transition-colors duration-250">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-black bg-gradient-to-r from-rose-500 to-crimson-600 bg-clip-text text-transparent tracking-wider">
-                KH<span className="text-slate-100">Manga</span>
+          <div className="flex items-center">
+            {/* Logo */}
+            <Link to="/" className="flex-shrink-0 flex items-center">
+              <span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-rose-400 bg-clip-text text-transparent tracking-wider font-sans">
+                KH<span className="text-slate-900 dark:text-slate-100">Manga</span>
               </span>
             </Link>
+
+            {/* Desktop Navigation Links */}
+            <div className="hidden md:flex ml-10 items-baseline space-x-6 text-sm font-semibold">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.name}
+                  to={link.path}
+                  className={({ isActive }) => (isActive ? activeStyle : inactiveStyle)}
+                >
+                  {link.name}
+                </NavLink>
+              ))}
+            </div>
           </div>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex space-x-8">
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.name}
-                to={link.path}
-                className={({ isActive }) => isActive ? activeStyle : inactiveStyle}
-              >
-                {link.name}
-              </NavLink>
-            ))}
+          {/* Search Bar */}
+          <div className="hidden md:flex flex-grow max-w-xs mx-8">
+            <SearchBar placeholder="Search manga..." />
           </div>
 
-          {/* Desktop Buttons / Dropdown */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* User Section (Right) */}
+          <div className="hidden md:flex items-center">
             {currentUser ? (
               <div className="relative" ref={dropdownRef}>
-                {/* Trigger Button */}
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center space-x-2 text-slate-300 hover:text-white bg-slate-900/60 border border-slate-800 hover:border-slate-700 px-3.5 py-2 rounded-xl text-sm font-semibold transition duration-200"
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-300 hover:text-rose-500 dark:hover:text-white bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 px-3.5 py-2 rounded-xl text-sm font-semibold transition duration-200"
                 >
                   {/* User Icon */}
                   <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,11 +103,11 @@ function Navbar() {
 
                 {/* Dropdown Menu */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2.5 w-56 rounded-xl bg-slate-900 border border-slate-800/80 shadow-2xl shadow-slate-950/80 py-1.5 z-50">
+                  <div className="absolute right-0 mt-2.5 w-56 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 shadow-2xl dark:shadow-slate-950/80 py-1.5 z-50 transition-colors duration-250">
                     {/* User Profile Info Header */}
-                    <div className="px-4 py-2 border-b border-slate-800/80">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Logged in as</p>
-                      <p className="text-xs font-semibold text-slate-300 truncate mt-0.5">
+                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800/80">
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Logged in as</p>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate mt-0.5">
                         {currentUser.displayName || currentUser.email}
                       </p>
                     </div>
@@ -112,7 +116,7 @@ function Navbar() {
                     <Link
                       to="/profile"
                       onClick={() => setDropdownOpen(false)}
-                      className="flex items-center space-x-2.5 px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition duration-150"
+                      className="flex items-center space-x-2.5 px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-rose-500 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition duration-150"
                     >
                       <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -120,15 +124,42 @@ function Navbar() {
                       <span>My Profile</span>
                     </Link>
 
+                    {/* Theme Selector Section */}
+                    <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800/80">
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Theme</p>
+                      <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5 border border-slate-200 dark:border-slate-800">
+                        <button
+                          onClick={() => setLightMode()}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-bold transition-all duration-200 ${
+                            theme === 'light'
+                              ? 'bg-rose-600 text-white shadow-sm'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
+                          }`}
+                        >
+                          ☀️ Light
+                        </button>
+                        <button
+                          onClick={() => setDarkMode()}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-bold transition-all duration-200 ${
+                            theme === 'dark'
+                              ? 'bg-rose-600 text-white shadow-sm'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
+                          }`}
+                        >
+                          🌙 Dark
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Logout Button */}
                     <button
                       onClick={handleLogout}
                       disabled={loggingOut}
-                      className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition duration-150 border-t border-slate-800/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-rose-500 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition duration-150 border-t border-slate-100 dark:border-slate-800/80 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loggingOut ? (
                         <>
-                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
@@ -150,14 +181,14 @@ function Navbar() {
               <>
                 <Link
                   to="/login"
-                  className="text-slate-300 hover:text-white text-sm font-medium transition duration-200"
+                  className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-sm font-medium transition duration-200"
                 >
                   Log In
                 </Link>
 
                 <Link
                   to="/register"
-                  className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition duration-200 shadow-lg shadow-rose-950/40"
+                  className="ml-4 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition duration-200 shadow-lg shadow-rose-950/40"
                 >
                   Register
                 </Link>
@@ -169,7 +200,7 @@ function Navbar() {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-900 focus:outline-none transition duration-200"
+              className="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 focus:outline-none transition duration-200"
               aria-expanded={isOpen}
             >
               <span className="sr-only">Open main menu</span>
@@ -189,14 +220,18 @@ function Navbar() {
 
       {/* Mobile Menu */}
       <div className={`md:hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-slate-950/95 border-b border-slate-800">
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-slate-950/95 border-b border-slate-200 dark:border-slate-800 transition-colors duration-250">
+          {/* Mobile Search Bar */}
+          <div className="px-3 pb-3 pt-1">
+            <SearchBar placeholder="Search manga..." onSearchNavigate={() => setIsOpen(false)} />
+          </div>
           {navLinks.map((link) => (
             <NavLink
               key={link.name}
               to={link.path}
               onClick={() => setIsOpen(false)}
               className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-slate-900 text-rose-500' : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-slate-100 dark:bg-slate-900 text-rose-500' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-rose-500 dark:hover:text-white'
                 }`
               }
             >
@@ -204,9 +239,9 @@ function Navbar() {
             </NavLink>
           ))}
           {currentUser ? (
-            <div className="pt-4 pb-2 border-t border-slate-800 flex flex-col space-y-2 px-3">
+            <div className="pt-4 pb-2 border-t border-slate-200 dark:border-slate-800 flex flex-col space-y-2 px-3">
               {/* Mobile Profile Name Display */}
-              <div className="flex items-center space-x-2 px-3 py-1 text-slate-400">
+              <div className="flex items-center space-x-2 px-3 py-1 text-slate-500 dark:text-slate-400">
                 <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -219,7 +254,7 @@ function Navbar() {
               <Link
                 to="/profile"
                 onClick={() => setIsOpen(false)}
-                className="w-full flex items-center space-x-2.5 px-3 py-2 text-slate-300 hover:bg-slate-900 rounded-md text-sm font-medium transition duration-200"
+                className="w-full flex items-center space-x-2.5 px-3 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-md text-sm font-medium transition duration-200"
               >
                 <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -227,6 +262,35 @@ function Navbar() {
                 <span>My Profile</span>
               </Link>
               
+              {/* Mobile Theme Toggle Section */}
+              <div className="pt-2 pb-1 border-t border-slate-200 dark:border-slate-800 flex flex-col space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-1.5">Theme</p>
+                <div className="px-3">
+                  <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5 border border-slate-200 dark:border-slate-800">
+                    <button
+                      onClick={() => setLightMode()}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-bold transition-all duration-200 ${
+                        theme === 'light'
+                          ? 'bg-rose-600 text-white shadow-sm'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
+                      }`}
+                    >
+                      ☀️ Light
+                    </button>
+                    <button
+                      onClick={() => setDarkMode()}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-bold transition-all duration-200 ${
+                        theme === 'dark'
+                          ? 'bg-rose-600 text-white shadow-sm'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100'
+                      }`}
+                    >
+                      🌙 Dark
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Mobile Logout Button */}
               <button
                 onClick={handleLogout}
@@ -252,11 +316,11 @@ function Navbar() {
               </button>
             </div>
           ) : (
-            <div className="pt-4 pb-2 border-t border-slate-800 flex flex-col space-y-2 px-3">
+            <div className="pt-4 pb-2 border-t border-slate-200 dark:border-slate-800 flex flex-col space-y-2 px-3">
               <Link
                 to="/login"
                 onClick={() => setIsOpen(false)}
-                className="w-full text-center text-slate-300 hover:text-white py-2 font-medium text-sm transition duration-200"
+                className="w-full text-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white py-2 font-medium text-sm transition duration-200"
               >
                 Log In
               </Link>

@@ -160,3 +160,90 @@ export const deleteUserAccount = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Retrieve user details by firebaseUid.
+ * GET /api/users/:firebaseUid
+ */
+export const getUserProfile = async (req, res, next) => {
+  try {
+    const { firebaseUid } = req.params;
+    if (!firebaseUid) {
+      return res.status(400).json({ success: false, error: 'firebaseUid is required.' });
+    }
+
+    const user = await userService.findUserByFirebaseUid(firebaseUid.trim());
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update user details (username and/or avatar) by firebaseUid.
+ * PUT /api/users/:firebaseUid
+ */
+export const updateUserProfile = async (req, res, next) => {
+  try {
+    const { firebaseUid } = req.params;
+    const { username, avatar } = req.body;
+
+    if (!firebaseUid) {
+      return res.status(400).json({ success: false, error: 'firebaseUid is required.' });
+    }
+
+    // Resolve current user to verify existence
+    const user = await userService.findUserByFirebaseUid(firebaseUid.trim());
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    const updateData = {};
+
+    // Validate and process username if provided
+    if (username !== undefined) {
+      const cleanUsername = username.trim();
+      if (cleanUsername === '') {
+        return res.status(400).json({ success: false, error: 'Username cannot be empty.' });
+      }
+
+      // Check username availability if it's changing
+      if (cleanUsername !== user.username) {
+        const existingUser = await userService.findUserByUsername(cleanUsername);
+        if (existingUser) {
+          return res.status(409).json({ success: false, error: 'Username is already taken.' });
+        }
+        updateData.username = cleanUsername;
+      }
+    }
+
+    // Process avatar if provided
+    if (avatar !== undefined) {
+      updateData.avatar = avatar === '' ? null : avatar.trim();
+    }
+
+    // Only update if there are changes
+    if (Object.keys(updateData).length > 0) {
+      const updatedUser = await userService.updateUser(user.firebaseUid, updateData);
+      return res.status(200).json({
+        success: true,
+        user: updatedUser,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'No changes detected.',
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

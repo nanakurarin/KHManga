@@ -5,13 +5,13 @@ function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-slate-950 border-t border-slate-900 text-slate-400 py-12">
+    <footer className="bg-slate-100 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-900 text-slate-550 dark:text-slate-400 py-12 transition-colors duration-250">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand Info */}
           <div className="flex flex-col space-y-4">
             <span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-rose-400 bg-clip-text text-transparent tracking-wider">
-              KH<span className="text-slate-100">Manga</span>
+              KH<span className="text-slate-900 dark:text-slate-100">Manga</span>
             </span>
             <p className="text-sm text-slate-500 max-w-xs">
               Your premium, responsive portal to read high-quality manga online. Created with love using React and Tailwind CSS.
@@ -20,7 +20,7 @@ function Footer() {
 
           {/* Quick Links */}
           <div className="flex flex-col space-y-3">
-            <h4 className="text-sm font-semibold text-slate-200 uppercase tracking-wider">Quick Links</h4>
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Quick Links</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <Link to="/" className="hover:text-white transition duration-150">Home</Link>
               <Link to="/browse" className="hover:text-white transition duration-150">Browse</Link>
@@ -31,7 +31,7 @@ function Footer() {
 
           {/* Contact / Links */}
           <div className="flex flex-col space-y-3">
-            <h4 className="text-sm font-semibold text-slate-200 uppercase tracking-wider">Developer Links</h4>
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Developer Links</h4>
             <div className="flex items-center space-x-4 text-sm">
               <a 
                 href="https://github.com" 
@@ -51,7 +51,7 @@ function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-slate-900 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500">
+        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-900 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500">
           <p>&copy; {currentYear} KHManga. All rights reserved.</p>
           <div className="flex space-x-4 mt-4 sm:mt-0">
             <span className="hover:text-slate-400 cursor-pointer">Terms of Service</span>

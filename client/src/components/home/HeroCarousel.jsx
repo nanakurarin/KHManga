@@ -7,7 +7,7 @@ import CarouselIndicators from './CarouselIndicators';
  * Hero carousel containing slides, arrows, and indicators.
  * Pauses autoplay on hover and runs an infinite slide loop.
  */
-function HeroCarousel({ mangaList = [] }) {
+function HeroCarousel({ mangaList = [], loading, error }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -38,11 +38,27 @@ function HeroCarousel({ mangaList = [] }) {
     return () => clearInterval(interval);
   }, [isPaused, totalSlides, activeIndex]);
 
-  if (totalSlides === 0) {
-    // Return empty placeholder container of identical height to keep layouts stable
+  if (loading) {
     return (
-      <div className="w-full h-[620px] sm:h-[520px] md:h-[400px] lg:h-[380px] bg-slate-900/40 border border-slate-900 rounded-2xl flex items-center justify-center animate-pulse text-slate-600 font-bold select-none">
+      <div className="w-full h-[620px] sm:h-[520px] md:h-[400px] lg:h-[380px] bg-slate-900/40 border border-slate-900 rounded-2xl flex items-center justify-center animate-pulse text-slate-500 font-bold select-none">
         Loading Featured Manga...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-[620px] sm:h-[520px] md:h-[400px] lg:h-[380px] bg-rose-950/10 border border-rose-905/30 rounded-2xl flex flex-col items-center justify-center text-rose-400 font-semibold p-6 text-center">
+        <p className="mb-2">Failed to load recently updated RomCom titles.</p>
+        <p className="text-xs text-rose-500/80">{error}</p>
+      </div>
+    );
+  }
+
+  if (totalSlides === 0) {
+    return (
+      <div className="w-full h-[620px] sm:h-[520px] md:h-[400px] lg:h-[380px] bg-slate-900/40 border border-slate-900 rounded-2xl flex items-center justify-center text-slate-500 font-bold select-none">
+        No Recently Updated RomCom Titles Found.
       </div>
     );
   }
@@ -65,7 +81,7 @@ function HeroCarousel({ mangaList = [] }) {
       </div>
 
       {/* Manual Arrow Controls (only show on hover for cleaner desktop views) */}
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:block">
+      <div className="absolute inset-0 z-30 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-[400ms] ease-in-out hidden md:block">
         <CarouselControls 
           onPrev={handlePrev} 
           onNext={handleNext} 

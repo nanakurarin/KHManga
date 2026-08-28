@@ -1,5 +1,5 @@
 import express from 'express';
-import { syncUser, checkUsername, deleteUserAccount } from '../controllers/userController.js';
+import { syncUser, checkUsername, deleteUserAccount, getUserProfile, updateUserProfile } from '../controllers/userController.js';
 
 const router = express.Router();
 
@@ -7,6 +7,10 @@ const router = express.Router();
 router.get('/check-username/:username', checkUsername);
 // POST /api/users/sync
 router.post('/sync', syncUser);
+// GET /api/users/:firebaseUid
+router.get('/:firebaseUid', getUserProfile);
+// PUT /api/users/:firebaseUid
+router.put('/:firebaseUid', updateUserProfile);
 // DELETE /api/users/:firebaseUid
 router.delete('/:firebaseUid', deleteUserAccount);
 

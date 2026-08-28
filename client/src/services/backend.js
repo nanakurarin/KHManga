@@ -86,3 +86,64 @@ export const deleteUserFromBackend = async (firebaseUid) => {
   }
 };
 
+/**
+ * Fetch a user profile by Firebase UID.
+ * @param {string} firebaseUid
+ * @returns {Promise<Object>}
+ */
+export const getUserProfile = async (firebaseUid) => {
+  try {
+    const response = await fetch(`/api/users/${encodeURIComponent(firebaseUid)}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMsg = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson && errorJson.error) {
+          errorMsg = errorJson.error;
+        }
+      } catch (e) {}
+      throw new Error(errorMsg);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user profile by Firebase UID.
+ * @param {string} firebaseUid
+ * @param {Object} updateData - { username, avatar }
+ * @returns {Promise<Object>}
+ */
+export const updateUserProfile = async (firebaseUid, updateData) => {
+  try {
+    const response = await fetch(`/api/users/${encodeURIComponent(firebaseUid)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMsg = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson && errorJson.error) {
+          errorMsg = errorJson.error;
+        }
+      } catch (e) {}
+      throw new Error(errorMsg);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
+
+

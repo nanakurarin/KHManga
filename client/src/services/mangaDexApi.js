@@ -23,8 +23,8 @@ export const formatMangaData = (manga) => {
   const attrs = manga.attributes || {};
 
   // Extract English title, fallback to any available title
-  const title = attrs.title?.en || 
-    (attrs.title ? Object.values(attrs.title)[0] : '') || 
+  const title = attrs.title?.en ||
+    (attrs.title ? Object.values(attrs.title)[0] : '') ||
     'Untitled Manga';
 
   // Extract alt titles (just strings)
@@ -33,14 +33,14 @@ export const formatMangaData = (manga) => {
     .filter(Boolean);
 
   // Extract description
-  const description = attrs.description?.en || 
-    (attrs.description ? Object.values(attrs.description)[0] : '') || 
+  const description = attrs.description?.en ||
+    (attrs.description ? Object.values(attrs.description)[0] : '') ||
     'No English description available.';
 
   // Resolve cover art relationship
   const coverRel = manga.relationships?.find(r => r.type === 'cover_art');
   const coverFileName = coverRel?.attributes?.fileName;
-  const coverUrl = coverFileName 
+  const coverUrl = coverFileName
     ? `https://uploads.mangadex.org/covers/${id}/${coverFileName}.512.jpg`
     : null;
 
@@ -75,6 +75,7 @@ export const formatMangaData = (manga) => {
     status,
     genres,
     year,
+    latestUploadedChapter: attrs.latestUploadedChapter || null,
     contentRating: attrs.contentRating || 'safe'
   };
 };
@@ -89,7 +90,7 @@ export const formatMangaData = (manga) => {
 export const getCoverArt = (manga) => {
   if (!manga) return null;
   if (manga.coverUrl) return manga.coverUrl;
-  
+
   const coverRel = manga.relationships?.find(r => r.type === 'cover_art');
   const coverFileName = coverRel?.attributes?.fileName;
   if (coverFileName && manga.id) {
@@ -101,15 +102,18 @@ export const getCoverArt = (manga) => {
 /**
  * Fetch the latest uploaded or updated manga.
  * 
+ * @param {number} [limit=10]
+ * @param {number} [offset=0]
  * @returns {Promise<Array>} List of formatted manga objects
  */
-export const getLatestManga = async () => {
+export const getLatestManga = async (limit = 10, offset = 0) => {
   try {
     const url = new URL(`${BASE_URL}/manga`);
     url.searchParams.append('includes[]', 'cover_art');
     url.searchParams.append('includes[]', 'author');
     url.searchParams.append('includes[]', 'artist');
-    url.searchParams.append('limit', '10');
+    url.searchParams.append('limit', limit.toString());
+    url.searchParams.append('offset', offset.toString());
     url.searchParams.append('contentRating[]', 'safe');
     url.searchParams.append('contentRating[]', 'suggestive');
     url.searchParams.append('order[latestUploadedChapter]', 'desc');
@@ -120,9 +124,41 @@ export const getLatestManga = async () => {
     }
 
     const data = await response.json();
-    return (data.data || []).map(formatMangaData).filter(Boolean);
+    const mangaList = (data.data || []).map(formatMangaData).filter(Boolean);
+    const total = data.total || 0;
+    return { mangaList, total };
   } catch (error) {
     console.error('Error in getLatestManga:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch the most popular manga titles based on followed count.
+ * 
+ * @param {number} [limit=10]
+ * @returns {Promise<Array>} List of formatted manga objects
+ */
+export const getPopularManga = async (limit = 10) => {
+  try {
+    const url = new URL(`${BASE_URL}/manga`);
+    url.searchParams.append('includes[]', 'cover_art');
+    url.searchParams.append('includes[]', 'author');
+    url.searchParams.append('includes[]', 'artist');
+    url.searchParams.append('limit', limit.toString());
+    url.searchParams.append('contentRating[]', 'safe');
+    url.searchParams.append('contentRating[]', 'suggestive');
+    url.searchParams.append('order[followedCount]', 'desc');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch popular manga: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return (data.data || []).map(formatMangaData).filter(Boolean);
+  } catch (error) {
+    console.error('Error in getPopularManga:', error);
     throw error;
   }
 };
@@ -141,16 +177,16 @@ export const getLatestManga = async () => {
 export const searchManga = async (query = '', options = {}) => {
   try {
     const url = new URL(`${BASE_URL}/manga`);
-    
+
     url.searchParams.append('includes[]', 'cover_art');
     url.searchParams.append('includes[]', 'author');
     url.searchParams.append('includes[]', 'artist');
-    
+
     const limit = options.limit || 24;
     const offset = options.offset || 0;
     url.searchParams.append('limit', limit.toString());
     url.searchParams.append('offset', offset.toString());
-    
+
     url.searchParams.append('contentRating[]', 'safe');
     url.searchParams.append('contentRating[]', 'suggestive');
 
@@ -166,6 +202,8 @@ export const searchManga = async (query = '', options = {}) => {
       url.searchParams.append('order[title]', 'asc');
     } else if (options.order === 'Highest Rating') {
       url.searchParams.append('order[followedCount]', 'desc');
+    } else if (options.order === 'Recently Added') {
+      url.searchParams.append('order[createdAt]', 'desc');
     } else {
       url.searchParams.append('order[latestUploadedChapter]', 'desc');
     }
@@ -176,7 +214,9 @@ export const searchManga = async (query = '', options = {}) => {
     }
 
     const data = await response.json();
-    return (data.data || []).map(formatMangaData).filter(Boolean);
+    const mangaList = (data.data || []).map(formatMangaData).filter(Boolean);
+    const total = data.total || 0;
+    return { mangaList, total };
   } catch (error) {
     console.error('Error in searchManga:', error);
     throw error;
@@ -243,7 +283,7 @@ export const getMangaChapters = async (id) => {
             id: ch.id,
             number: chNum,
             title: ch.attributes?.title || `Chapter ${chNum}`,
-            date: ch.attributes?.publishAt 
+            date: ch.attributes?.publishAt
               ? new Date(ch.attributes.publishAt).toISOString().split('T')[0]
               : 'N/A'
           });
@@ -253,7 +293,7 @@ export const getMangaChapters = async (id) => {
           id: ch.id,
           number: 'Oneshot',
           title: ch.attributes?.title || 'Oneshot',
-          date: ch.attributes?.publishAt 
+          date: ch.attributes?.publishAt
             ? new Date(ch.attributes.publishAt).toISOString().split('T')[0]
             : 'N/A'
         });
@@ -281,7 +321,7 @@ export const getMangaList = async (ids) => {
     url.searchParams.append('includes[]', 'author');
     url.searchParams.append('includes[]', 'artist');
     url.searchParams.append('limit', '100');
-    
+
     ids.slice(0, 100).forEach(id => {
       url.searchParams.append('ids[]', id);
     });
@@ -298,3 +338,205 @@ export const getMangaList = async (ids) => {
     return [];
   }
 };
+
+/**
+ * Fetch recently updated Romance + Comedy (RomCom) manga.
+ * 
+ * @param {number} [limit=10]
+ * @returns {Promise<Array>} List of formatted manga objects
+ */
+export const getRecentRomComManga = async (limit = 10) => {
+  try {
+    const url = new URL(`${BASE_URL}/manga`);
+    url.searchParams.append('includes[]', 'cover_art');
+    url.searchParams.append('includes[]', 'author');
+    url.searchParams.append('includes[]', 'artist');
+    url.searchParams.append('limit', limit.toString());
+
+    // Filter for Romance AND Comedy tags
+    url.searchParams.append('includedTags[]', genreTagIds['Romance']);
+    url.searchParams.append('includedTags[]', genreTagIds['Comedy']);
+    url.searchParams.append('includedTagsMode', 'AND');
+
+    url.searchParams.append('contentRating[]', 'safe');
+    url.searchParams.append('contentRating[]', 'suggestive');
+    url.searchParams.append('order[latestUploadedChapter]', 'desc');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch recent RomCom manga: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return (data.data || []).map(formatMangaData).filter(Boolean);
+  } catch (error) {
+    console.error('Error in getRecentRomComManga:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch latest manga updates sorted by chapter upload timestamp.
+ * 
+ * @param {number} [limit=10]
+ * @returns {Promise<Array>} List of formatted manga objects
+ */
+export const getLatestUpdates = async (limit = 10) => {
+  try {
+    const url = new URL(`${BASE_URL}/manga`);
+    url.searchParams.append('includes[]', 'cover_art');
+    url.searchParams.append('includes[]', 'author');
+    url.searchParams.append('includes[]', 'artist');
+    url.searchParams.append('limit', limit.toString());
+    url.searchParams.append('contentRating[]', 'safe');
+    url.searchParams.append('contentRating[]', 'suggestive');
+    url.searchParams.append('order[latestUploadedChapter]', 'desc');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch latest updates: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return (data.data || []).map(formatMangaData).filter(Boolean);
+  } catch (error) {
+    console.error('Error in getLatestUpdates:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch recently added manga sorted by creation timestamp.
+ * 
+ * @param {number} [limit=10]
+ * @returns {Promise<Array>} List of formatted manga objects
+ */
+export const getRecentlyAdded = async (limit = 10) => {
+  try {
+    const url = new URL(`${BASE_URL}/manga`);
+    url.searchParams.append('includes[]', 'cover_art');
+    url.searchParams.append('includes[]', 'author');
+    url.searchParams.append('includes[]', 'artist');
+    url.searchParams.append('limit', limit.toString());
+    url.searchParams.append('contentRating[]', 'safe');
+    url.searchParams.append('contentRating[]', 'suggestive');
+    url.searchParams.append('order[createdAt]', 'desc');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch recently added manga: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return (data.data || []).map(formatMangaData).filter(Boolean);
+  } catch (error) {
+    console.error('Error in getRecentlyAdded:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch chapter details by ID.
+ * Includes related manga information to get the manga title in a single request.
+ * 
+ * @param {string} chapterId - MangaDex Chapter UUID
+ * @returns {Promise<Object>} Formatted chapter metadata
+ */
+export const getChapterDetails = async (chapterId) => {
+  try {
+    const url = new URL(`${BASE_URL}/chapter/${encodeURIComponent(chapterId)}`);
+    url.searchParams.append('includes[]', 'manga');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chapter details: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const chapterData = data.data || {};
+    const attrs = chapterData.attributes || {};
+
+    // Extract manga info from relationships
+    const mangaRel = chapterData.relationships?.find(r => r.type === 'manga');
+    const mangaId = mangaRel?.id;
+    const mangaTitle = mangaRel?.attributes?.title?.en ||
+      (mangaRel?.attributes?.title ? Object.values(mangaRel.attributes.title)[0] : '') ||
+      '';
+
+    return {
+      id: chapterData.id,
+      chapter: attrs.chapter || '',
+      title: attrs.title || `Chapter ${attrs.chapter || ''}`,
+      mangaId,
+      mangaTitle
+    };
+  } catch (error) {
+    console.error(`Error in getChapterDetails for ${chapterId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch chapter page URLs from MangaDex At-Home server.
+ * 
+ * @param {string} chapterId - MangaDex Chapter UUID
+ * @returns {Promise<Array<string>>} List of absolute page image URLs
+ */
+export const getChapterPages = async (chapterId) => {
+  try {
+    const url = new URL(`${BASE_URL}/at-home/server/${encodeURIComponent(chapterId)}`);
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chapter pages: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const hostBaseUrl = data.baseUrl;
+    const hash = data.chapter?.hash;
+    const files = data.chapter?.data || [];
+
+    // Construct full URLs
+    const pageUrls = files.map(file => `${hostBaseUrl}/data/${hash}/${file}`);
+    return pageUrls;
+  } catch (error) {
+    console.error(`Error in getChapterPages for ${chapterId}:`, error);
+    throw error;
+  }
+};
+
+// Simple session-level cache to keep search lists / carousel cards from duplicate fetching
+const chapterCountCache = {};
+
+/**
+ * Fetch total chapter count for English translations.
+ * Utilizes in-memory caching to prevent duplicate API requests for the same manga.
+ * 
+ * @param {string} mangaId - Manga DEX UUID
+ * @returns {Promise<number|null>} Total chapter count or null if error/unresolved
+ */
+export const getMangaChapterCount = async (mangaId) => {
+  if (!mangaId) return null;
+  if (chapterCountCache[mangaId] !== undefined) {
+    return chapterCountCache[mangaId];
+  }
+
+  try {
+    const url = new URL(`${BASE_URL}/manga/${encodeURIComponent(mangaId)}/feed`);
+    url.searchParams.append('translatedLanguage[]', 'en');
+    url.searchParams.append('limit', '0');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chapter count: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const total = data.total !== undefined ? data.total : null;
+    chapterCountCache[mangaId] = total;
+    return total;
+  } catch (error) {
+    console.error(`Error fetching chapter count for ${mangaId}:`, error);
+    return null;
+  }
+};
+

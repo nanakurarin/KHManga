@@ -93,4 +93,28 @@ export const resolveUser = async (identifier) => {
   return await findUserByFirebaseUid(String(identifier).trim());
 };
 
+/**
+ * Update user details in database by firebaseUid.
+ * @param {string} firebaseUid
+ * @param {Object} updateData
+ * @param {string} [updateData.username]
+ * @param {string} [updateData.avatar]
+ * @returns {Promise<Object>}
+ */
+export const updateUser = (firebaseUid, updateData) => {
+  const data = {};
+  if (updateData.username !== undefined) {
+    data.username = updateData.username;
+  }
+  if (updateData.avatar !== undefined) {
+    data.avatar = updateData.avatar;
+  }
+
+  return prisma.user.update({
+    where: { firebaseUid },
+    data,
+  });
+};
+
+
 
